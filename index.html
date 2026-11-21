@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>rytmo.</title>
+  <style>
+    /* Mínimo para a tela nunca aparecer "crua" se o style.css demorar a chegar */
+    html, body { background: #050505; color: #f5f5f7; font-family: -apple-system, system-ui, sans-serif; }
+    .hidden, [hidden] { display: none !important; }
+  </style>
+  <script>
+    // O iOS às vezes reabre o app (depois de muito tempo parado) sem o estilo ou sem o código.
+    // Se isso acontecer, recarrega sozinho (no máximo 3 vezes seguidas).
+    (function () {
+      var KEY = 'rytmo.heal';
+      function healthy() {
+        return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() && window.__rytmoBooted;
+      }
+      function check() {
+        if (healthy()) { try { sessionStorage.removeItem(KEY); } catch (e) {} return; }
+        var n = 0;
+        try { n = Number(sessionStorage.getItem(KEY)) || 0; sessionStorage.setItem(KEY, n + 1); } catch (e) {}
+        if (n < 3) location.reload();
+      }
+      window.addEventListener('load', function () { setTimeout(check, 6000); });
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') setTimeout(check, 2000); });
+    })();
+  </script>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <!-- PWA: instalável pela tela inicial do celular (manifest + sw.js + js/install.js) -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="rytmo" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#050505" />
+  <link rel="preconnect" href="https://www.googleapis.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <!-- Tela de login -->
+  <section id="login" class="login hidden">
+    <div class="login-card">
+      <div class="brand brand-lg">
+        <svg class="mark" viewBox="0 0 64 48" aria-hidden="true"><use href="#mark" /></svg>
+        <span class="wordmark">rytmo<b>.</b></span>
+      </div>
+      <p class="login-sub">Sua música, no seu Google Drive.<br />Arraste, organize e ouça de qualquer lugar.</p>
+      <button id="btn-login" class="btn btn-primary btn-lg">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M21.35 11.1h-9.18v2.73h5.27c-.23 1.4-1.6 4.1-5.27 4.1-3.17 0-5.76-2.62-5.76-5.86s2.59-5.86 5.76-5.86c1.8 0 3.01.77 3.7 1.43l2.52-2.43C16.78 3.72 14.7 2.8 12.17 2.8 7.02 2.8 2.86 6.96 2.86 12.07s4.16 9.27 9.31 9.27c5.37 0 8.94-3.78 8.94-9.1 0-.61-.07-1.08-.16-1.54z"/></svg>
+        Entrar com Google
+      </button>
+      <label id="login-optin" class="login-optin hidden">
+        <input type="checkbox" id="optin" /> Quero receber novidades e lançamentos por e-mail
+      </label>
+      <p class="login-privacy hidden" id="login-privacy">Ao entrar, seu nome e e-mail ficam registrados para o dono desta biblioteca.</p>
+      <button id="btn-install" class="login-install hidden" data-install>
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M11 3h2v9.2l3.6-3.6L18 10l-6 6-6-6 1.4-1.4 3.6 3.6zM5 18h14v2H5z"/></svg>
+        Instalar o app na tela inicial
+      </button>
+      <a class="login-demo" href="?demo">ou experimentar sem login (modo demo, nada vai para o Drive)</a>
+      <p id="login-error" class="login-error"></p>
+      <a class="login-policy" href="https://kbtlab.net/rytmo/privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>
+    </div>
+  </section>
+
+  <!-- App -->
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 64 48" aria-hidden="true"><use href="#mark" /></svg>
+        <span class="wordmark">rytmo<b>.</b></span>
+      </div>
+      <nav class="nav">
+        <a href="#/" data-nav="home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg>Início</a>
+        <a href="#/playlists" data-nav="playlists"><svg viewBox="0 0 24 24"><path d="M3 5h12v2H3zm0 4h12v2H3zm0 4h8v2H3zm14-8h4v2h-2v9.5a2.5 2.5 0 1 1-2-2.45z"/></svg>Playlists</a>
+        <a href="#/library" data-nav="library"><svg viewBox="0 0 24 24"><path d="M4 3h2v18H4zm4 0h2v18H8zm4.2.7 1.9-.6 5.6 17.1-1.9.6z"/></svg>Biblioteca</a>
+        <a href="#/artists" data-nav="artists"><svg viewBox="0 0 24 24"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5z"/></svg>Artistas</a>
+        <a href="#/rytmo" data-nav="rytmo"><svg viewBox="0 0 24 24"><path d="M4 20V10h3v10zm6.5 0V4h3v16zM17 20v-7h3v7z"/></svg>Seu rytmo</a>
+        <a href="#/offline" data-nav="offline"><svg viewBox="0 0 24 24"><path d="M11 3h2v9.2l3.6-3.6L18 10l-6 6-6-6 1.4-1.4 3.6 3.6zM5 18h14v2H5z"/></svg>Baixadas</a>
+      </nav>
+      <div class="library">
+        <div class="library-head">
+          <span>Sua biblioteca</span>
+          <button id="btn-import" class="icon-btn edit-only" title="Importar músicas"><svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg></button>
+        </div>
+        <ul id="library-list" class="library-list"></ul>
+      </div>
+      <div class="dropzone-mini edit-only" id="dropzone-mini">
+        <svg viewBox="0 0 24 24"><path d="M12 3 7 8h3v6h4V8h3zM5 18h14v2H5z"/></svg>
+        <span>Arraste pastas ou músicas<br/>para qualquer lugar</span>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+      <header class="topbar">
+        <div class="search-wrap" id="search-wrap">
+          <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.05l4.25 4.24-1.42 1.42-4.24-4.25A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
+          <input id="search" type="search" placeholder="O que você quer ouvir?" autocomplete="off" />
+        </div>
+        <div class="topbar-right">
+          <span id="mode-badge" class="badge hidden">modo demo</span>
+          <span id="user-chip" class="user-chip"></span>
+          <button id="btn-share" class="btn btn-ghost btn-sm edit-only" title="Compartilhar"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M18 16a3 3 0 0 0-2.4 1.2l-6.7-3.4a3 3 0 0 0 0-1.6l6.7-3.4A3 3 0 1 0 15 7l-6.7 3.4a3 3 0 1 0 0 3.2L15 17a3 3 0 1 0 3-1z"/></svg><span class="lbl">Compartilhar</span></button>
+          <button id="btn-about" class="btn btn-ghost btn-sm" data-about title="Sobre o rytmo."><svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm-1 7h2v6h-2zm0-4h2v2h-2z"/></svg><span class="lbl">Sobre</span></button>
+          <button type="button" id="btn-lang" class="lang-dot" title="Idioma" aria-label="Idioma">PT</button>
+          <button id="btn-logout" class="btn btn-ghost btn-sm">Sair</button>
+        </div>
+      </header>
+      <div id="view" class="view"></div>
+    </main>
+
+    <!-- Tocando agora: lateral direita (Mac/telas largas) ou tela cheia (celular) -->
+    <aside class="nowpanel" id="nowpanel"></aside>
+
+    <!-- Player -->
+    <footer class="player">
+      <div class="np">
+        <div class="np-cover" id="np-cover"></div>
+        <div class="np-meta">
+          <div class="np-title" id="np-title">Nada tocando</div>
+          <div class="np-artist" id="np-artist">Escolha uma música</div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="buttons">
+          <button class="icon-btn" id="btn-shuffle" title="Aleatório"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4V8h-2.6l-8 9H3v-2h2.6l8-9H17zm0 10 4 4-4 4v-3h-3.4l-2.3-2.6 1.4-1.5 1.8 2.1H17zM3 7h3.4l2.3 2.6-1.4 1.5L5.6 9H3z"/></svg></button>
+          <button class="icon-btn" id="btn-prev" title="Anterior"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zm3.5 7L19 5v14z"/></svg></button>
+          <button class="icon-btn" id="btn-back10" title="Voltar 10 segundos"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/><text x="12" y="16" font-size="7" font-weight="700" text-anchor="middle">10</text></svg></button>
+          <button class="play-btn" id="btn-play" title="Tocar / Pausar"><svg viewBox="0 0 24 24" id="play-icon"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="icon-btn" id="btn-fwd10" title="Avançar 10 segundos"><svg viewBox="0 0 24 24"><path d="M12 5V2l5 4-5 4V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z"/><text x="12" y="16" font-size="7" font-weight="700" text-anchor="middle">10</text></svg></button>
+          <button class="icon-btn" id="btn-next" title="Próxima"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5l9.5 7L5 19z"/></svg></button>
+          <button class="icon-btn" id="btn-repeat" title="Repetir"><svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z"/></svg></button>
+        </div>
+        <div class="progress">
+          <span id="time-cur">0:00</span>
+          <input type="range" id="seek" min="0" max="1000" value="0" />
+          <span id="time-dur">0:00</span>
+        </div>
+      </div>
+      <div class="extra">
+        <button class="icon-btn" id="btn-airplay" title="AirPlay" hidden><svg viewBox="0 0 24 24"><path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1l-1.6-2H20V5H4v10h2.6zm7-3 6 7H6z"/></svg></button>
+        <button class="icon-btn vol-btn" id="btn-mute" title="Silenciar"><svg viewBox="0 0 24 24" class="vol-icon"><path id="vol-path" d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg></button>
+        <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8" title="Volume" />
+      </div>
+      <audio id="audio" preload="auto" playsinline></audio>
+    </footer>
+
+    <!-- Abas (só no celular) -->
+    <nav class="tabbar">
+      <a href="#/" data-nav="home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg>Início</a>
+      <a href="#/library" data-nav="library"><svg viewBox="0 0 24 24"><path d="M4 3h2v18H4zm4 0h2v18H8zm4.2.7 1.9-.6 5.6 17.1-1.9.6z"/></svg>Biblioteca</a>
+      <a href="#/playlists" data-nav="playlists"><svg viewBox="0 0 24 24"><path d="M3 5h12v2H3zm0 4h12v2H3zm0 4h8v2H3zm14-8h4v2h-2v9.5a2.5 2.5 0 1 1-2-2.45z"/></svg>Playlists</a>
+      <a href="#/rytmo" data-nav="rytmo"><svg viewBox="0 0 24 24"><path d="M4 20V10h3v10zm6.5 0V4h3v16zM17 20v-7h3v7z"/></svg>Seu rytmo</a>
+    </nav>
+  </div>
+
+  <!-- Sobreposição de arrastar -->
+  <div id="drop-overlay" class="drop-overlay hidden">
+    <div class="drop-box">
+      <svg viewBox="0 0 24 24"><path d="M12 3 7 8h3v6h4V8h3zM5 18h14v2H5z"/></svg>
+      <h2>Solte para adicionar à sua biblioteca</h2>
+      <p>Pastas viram álbuns. MP3, WAV, FLAC, M4A, OGG e mais.</p>
+    </div>
+  </div>
+
+  <!-- Modal genérico -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-card" id="modal-card"></div>
+  </div>
+
+  <!-- Painel de uploads -->
+  <div id="uploads" class="uploads hidden"></div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <input type="file" id="file-input" multiple accept="audio/*,.flac,.m4a,.opus,.aiff,.wma" hidden />
+  <input type="file" id="folder-input" webkitdirectory multiple hidden />
+
+  <!-- Marca (r + pulso) -->
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="mark" viewBox="0 0 64 48">
+      <path fill="var(--accent)" d="M4 14h9v4.2C15 15 18.2 13.4 22 13.4V22c-5.3 0-9 2-9 8.5V46H4z"/>
+      <polyline fill="none" stroke="var(--accent)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"
+        points="22,26 28,26 32,4 37,42 41,20 44,26 60,26"/>
+    </symbol>
+  </svg>
+
+  <script type="module" src="js/app.js"></script>
+  <!-- Navegador no celular deitado: pede para voltar à vertical (a música continua) -->
+  <div id="rotate-lock" class="rotate-lock" aria-live="polite">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v16h8V4zm3 13h2v2h-2z"/></svg>
+    <b>Gire o celular</b>
+    <span>No navegador, o rytmo funciona com o celular em pé. A música continua tocando.</span>
+  </div>
+</body>
+</html>
